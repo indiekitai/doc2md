@@ -21,7 +21,7 @@
 ## 安装
 
 ```bash
-pip install doc2md
+pip install indiekit-doc2md
 ```
 
 ## REST API 使用
