@@ -6,6 +6,29 @@
 
 文档转 Markdown 服务。专为 AI Agent 设计，提供 REST API 和 MCP 两种接入方式。
 
+## ✨ 新功能 (v0.2.0)
+
+### URL 前缀模式
+
+像 markdown.new 一样使用：
+
+```
+https://d.indiekit.ai/https/example.com
+https://d.indiekit.ai/https/news.ycombinator.com
+```
+
+在任何 URL 前加上 `d.indiekit.ai/` 即可获取 Markdown。
+
+### markdown.new 作为 Fallback
+
+本地转换失败时自动 fallback 到 [markdown.new](https://markdown.new)，确保高可用性。
+
+### 三层转换管道
+
+1. **Cloudflare Markdown for Agents** - 如果网站支持，直接返回 Markdown
+2. **本地 HTML 转换** - 使用 BeautifulSoup + markdownify
+3. **markdown.new Fallback** - 本地失败时的后备方案
+
 ## 支持格式
 
 | 输入 | 输出 |

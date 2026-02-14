@@ -10,7 +10,7 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 
-from .converter import convert_pdf, convert_docx, convert_html, convert_url
+from .converter import convert_pdf, convert_docx, convert_html, convert_url, convert_url_via_markdown_new
 
 server = Server("doc2md")
 
@@ -21,7 +21,26 @@ async def list_tools() -> list[Tool]:
     return [
         Tool(
             name="convert_url_to_markdown",
-            description="抓取网页并转换为 Markdown 格式。支持 Cloudflare Markdown for Agents 协议，会优先获取 Markdown 格式。",
+            description="抓取网页并转换为 Markdown 格式。支持 Cloudflare Markdown for Agents 协议，失败时自动 fallback 到 markdown.new。",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "要转换的网页 URL"
+                    },
+                    "prefer_markdown_new": {
+                        "type": "boolean",
+                        "description": "是否优先使用 markdown.new 服务（默认 false，本地转换优先）",
+                        "default": False
+                    }
+                },
+                "required": ["url"]
+            }
+        ),
+        Tool(
+            name="fetch_via_markdown_new",
+            description="通过 markdown.new 服务转换任意 URL 为 Markdown。适用于本地转换效果不好的网站。",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -88,7 +107,21 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             if not url:
                 return [TextContent(type="text", text="错误：需要提供 URL")]
             
-            markdown = await convert_url(url)
+            prefer_new = arguments.get("prefer_markdown_new", False)
+            markdown = await convert_url(url, use_fallback=True, prefer_markdown_new=prefer_new)
+            
+            # Truncate if too long
+            if len(markdown) > 100000:
+                markdown = markdown[:100000] + "\n\n...[内容过长，已截断]..."
+            
+            return [TextContent(type="text", text=markdown)]
+        
+        elif name == "fetch_via_markdown_new":
+            url = arguments.get("url", "")
+            if not url:
+                return [TextContent(type="text", text="错误：需要提供 URL")]
+            
+            markdown = await convert_url_via_markdown_new(url)
             
             # Truncate if too long
             if len(markdown) > 100000:

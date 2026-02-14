@@ -13,6 +13,10 @@ from bs4 import BeautifulSoup
 import httpx
 
 
+# markdown.new as fallback service
+MARKDOWN_NEW_URL = "https://markdown.new"
+
+
 def convert_pdf(content: bytes, extract_images: bool = False) -> str:
     """
     Convert PDF to Markdown.
@@ -160,33 +164,85 @@ def convert_html(content: str, base_url: Optional[str] = None) -> str:
     return post_process_markdown(markdown)
 
 
-async def convert_url(url: str, timeout: float = 30.0) -> str:
+async def convert_url_via_markdown_new(url: str, timeout: float = 30.0) -> str:
+    """
+    Convert URL via markdown.new service.
+    
+    Args:
+        url: URL to convert
+        timeout: Request timeout in seconds
+    
+    Returns:
+        Markdown text
+    """
+    markdown_new_url = f"{MARKDOWN_NEW_URL}/{url}"
+    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+        resp = await client.get(markdown_new_url)
+        resp.raise_for_status()
+        
+        text = resp.text
+        # markdown.new returns with metadata header, extract content
+        if "Markdown Content:" in text:
+            # Extract content after "Markdown Content:"
+            parts = text.split("Markdown Content:", 1)
+            if len(parts) > 1:
+                return parts[1].strip()
+        return text
+
+
+async def convert_url(
+    url: str, 
+    timeout: float = 30.0, 
+    use_fallback: bool = True,
+    prefer_markdown_new: bool = False
+) -> str:
     """
     Fetch URL and convert to Markdown.
     
     Args:
         url: URL to fetch
         timeout: Request timeout in seconds
+        use_fallback: Whether to fallback to markdown.new on failure
+        prefer_markdown_new: Use markdown.new as primary source
     
     Returns:
         Markdown text
     """
-    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
-        # Try to get markdown directly (Cloudflare Markdown for Agents)
-        # Disable compression to avoid encoding issues
-        headers = {"Accept": "text/markdown, text/html", "Accept-Encoding": "identity"}
-        resp = await client.get(url, headers=headers)
-        
-        content_type = resp.headers.get("content-type", "")
-        
-        if "text/markdown" in content_type:
-            # Server returned markdown directly!
-            return resp.text
-        elif "application/pdf" in content_type:
-            return convert_pdf(resp.content)
-        else:
-            # HTML - convert to markdown
-            return convert_html(resp.text, base_url=url)
+    # If prefer markdown.new, use it directly
+    if prefer_markdown_new:
+        try:
+            return await convert_url_via_markdown_new(url, timeout)
+        except Exception:
+            pass  # Fall through to local conversion
+    
+    # Try local conversion first
+    try:
+        async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+            # Try to get markdown directly (Cloudflare Markdown for Agents)
+            headers = {"Accept": "text/markdown, text/html", "Accept-Encoding": "identity"}
+            resp = await client.get(url, headers=headers)
+            
+            content_type = resp.headers.get("content-type", "")
+            
+            if "text/markdown" in content_type:
+                # Server returned markdown directly!
+                return resp.text
+            elif "application/pdf" in content_type:
+                return convert_pdf(resp.content)
+            else:
+                # HTML - convert to markdown
+                result = convert_html(resp.text, base_url=url)
+                if result and len(result) > 100:  # Basic quality check
+                    return result
+                raise ValueError("Conversion result too short")
+    except Exception as e:
+        if use_fallback:
+            # Fallback to markdown.new
+            try:
+                return await convert_url_via_markdown_new(url, timeout)
+            except Exception as fallback_error:
+                raise Exception(f"Both local and fallback conversion failed: {str(e)} / {str(fallback_error)}")
+        raise
 
 
 def clean_text(text: str) -> str:
