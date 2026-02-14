@@ -1,5 +1,9 @@
 # Doc2MD
 
+[![PyPI](https://img.shields.io/pypi/v/indiekit-doc2md?color=blue)](https://pypi.org/project/indiekit-doc2md/)
+[![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+
 文档转 Markdown 服务。专为 AI Agent 设计，提供 REST API 和 MCP 两种接入方式。
 
 ## 支持格式
