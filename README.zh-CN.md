@@ -8,13 +8,13 @@
 
 文档转 Markdown 服务。专为 AI Agent 设计，提供 REST API 和 MCP 两种接入方式。
 
-**Live Demo**: https://d.indiekit.ai
+**在线体验**: https://d.indiekit.ai
 
 ## ✨ 特性
 
 - **URL 前缀模式** - `d.indiekit.ai/https/example.com` 直接转换
 - **三层转换管道** - Cloudflare → 本地转换 → markdown.new fallback
-- **多格式支持** - PDF, Word, HTML, URL
+- **多格式支持** - PDF、Word、HTML、URL
 - **MCP Server** - 让 Claude Desktop 直接调用
 - **Agent 友好** - 纯 API，无 GUI
 
@@ -69,10 +69,10 @@ Doc2MD 使用三层 fallback 确保高可用：
 | 格式 | 端点 | 方法 |
 |------|------|------|
 | URL | `/convert/url` | GET/POST |
-| URL | `/https/{url}` | GET (前缀模式) |
-| PDF | `/convert/pdf` | POST (file) |
-| Word | `/convert/docx` | POST (file) |
-| HTML | `/convert/html` | POST (json) |
+| URL | `/https/{url}` | GET（前缀模式） |
+| PDF | `/convert/pdf` | POST（file） |
+| Word | `/convert/docx` | POST（file） |
+| HTML | `/convert/html` | POST（json） |
 
 ## API 示例
 
